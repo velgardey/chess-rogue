@@ -1,4 +1,4 @@
-import { Board, Piece, Player, Position, PieceType } from './types';
+import { Board, Player, Position, PieceType } from './types';
 
 export function initializeBoard(): Board {
   const board: Board = Array(8).fill(null).map(() => Array(8).fill(null));
@@ -20,13 +20,13 @@ export function initializeBoard(): Board {
 }
 
 export function isValidMove(
-  board: Board,
-  from: Position,
-  to: Position,
-  currentPlayer: Player,
-  roles: Record<PieceType, PieceType>,
-  enPassantTarget: Position | null,
-  castlingRights: { [key in Player]: { kingSide: boolean; queenSide: boolean } }
+    board: Board,
+    from: Position,
+    to: Position,
+    currentPlayer: Player,
+    roles: Record<PieceType, PieceType>,
+    enPassantTarget: Position | null,
+    castlingRights: { [key in Player]: { kingSide: boolean; queenSide: boolean } }
 ): boolean {
   const piece = board[from.row][from.col];
   if (!piece || piece.player !== currentPlayer) return false;
@@ -36,11 +36,10 @@ export function isValidMove(
 }
 
 export function makeMove(
-  board: Board,
-  from: Position,
-  to: Position,
-  enPassantTarget: Position | null,
-  castlingRights: { [key in Player]: { kingSide: boolean; queenSide: boolean } }
+    board: Board,
+    from: Position,
+    to: Position,
+    castlingRights: { [key in Player]: { kingSide: boolean; queenSide: boolean } }
 ): { newBoard: Board; enPassantTarget: Position | null; castlingRights: typeof castlingRights } {
   const newBoard = board.map(row => [...row]);
   const piece = newBoard[from.row][from.col];
@@ -83,8 +82,8 @@ export function makeMove(
 
   // Update en passant target
   const newEnPassantTarget = piece?.type === 'pawn' && Math.abs(to.row - from.row) === 2
-    ? { row: (from.row + to.row) / 2, col: from.col }
-    : null;
+      ? { row: (from.row + to.row) / 2, col: from.col }
+      : null;
 
   return { newBoard, enPassantTarget: newEnPassantTarget, castlingRights: newCastlingRights };
 }
@@ -131,11 +130,11 @@ export function isCheckmate(board: Board, player: Player, roles: Record<PieceTyp
 }
 
 export function getValidMoves(
-  board: Board,
-  position: Position,
-  roles: Record<PieceType, PieceType>,
-  enPassantTarget: Position | null,
-  castlingRights: { [key in Player]: { kingSide: boolean; queenSide: boolean } }
+    board: Board,
+    position: Position,
+    roles: Record<PieceType, PieceType>,
+    enPassantTarget: Position | null,
+    castlingRights: { [key in Player]: { kingSide: boolean; queenSide: boolean } }
 ): Position[] {
   const piece = board[position.row][position.col];
   if (!piece) return [];
@@ -288,10 +287,10 @@ function getQueenMoves(board: Board, position: Position, player: Player): Positi
 }
 
 function getKingMoves(
-  board: Board,
-  position: Position,
-  player: Player,
-  castlingRights: { [key in Player]: { kingSide: boolean; queenSide: boolean } }
+    board: Board,
+    position: Position,
+    player: Player,
+    castlingRights: { [key in Player]: { kingSide: boolean; queenSide: boolean } }
 ): Position[] {
   const moves: Position[] = [];
   const offsets = [
@@ -343,8 +342,13 @@ function findKing(board: Board, player: Player): Position | null {
 export function randomizeRoles(): Record<PieceType, PieceType> {
   const pieces: PieceType[] = ['pawn', 'rook', 'knight', 'bishop', 'queen'];
   const shuffled = [...pieces].sort(() => Math.random() - 0.5);
-  
+
   const roles: Record<PieceType, PieceType> = {
+    pawn: 'pawn',
+    rook: 'rook',
+    knight: 'knight',
+    bishop: 'bishop',
+    queen: 'queen',
     king: 'king', // King always keeps its role
   };
 

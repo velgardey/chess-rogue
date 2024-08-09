@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { GameState, Player, Position, PieceType } from '../utils/types';
-import { initializeBoard, isValidMove, makeMove, isCheck, isCheckmate, getValidMoves, randomizeRoles, getRandomPromotionPiece } from '../utils/chessLogic';
+import { GameState, Position } from '../utils/types';
+import { initializeBoard, isValidMove, makeMove, isCheck, isCheckmate, getValidMoves, randomizeRoles } from '../utils/chessLogic';
 
 interface ChessContextType extends GameState {
   movePiece: (from: Position, to: Position) => void;
@@ -41,8 +41,6 @@ const ChessProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =>
     castlingRights: { white: { kingSide: true, queenSide: true }, black: { kingSide: true, queenSide: true } },
   }));
 
-  const [isInCheck, setIsInCheck] = useState(false);
-
   useEffect(() => {
     const timer = setInterval(() => {
       if (!gameState.isGameOver) {
@@ -76,38 +74,33 @@ const ChessProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =>
 
       setGameState((prevState) => {
         if (isValidMove(prevState.board, from, to, prevState.currentPlayer, prevState.roles, prevState.enPassantTarget, prevState.castlingRights)) {
-          const { newBoard, enPassantTarget, castlingRights } = makeMove(prevState.board, from, to, prevState.enPassantTarget, prevState.castlingRights);
-          const nextPlayer = prevState.currentPlayer === 'white' ? 'black' : 'white';
+          const { newBoard, enPassantTarget, castlingRights } = makeMove(prevState.board, from, to, prevState.castlingRights);
 
-          const newState = {
+          const newCurrentPlayer = prevState.currentPlayer === 'white' ? 'black' : 'white';
+
+          return {
             ...prevState,
             board: newBoard,
-            currentPlayer: nextPlayer,
+            currentPlayer: newCurrentPlayer,
             enPassantTarget,
             castlingRights,
+            isGameOver: isCheckmate(newBoard, newCurrentPlayer, prevState.roles),
+            winner: isCheckmate(newBoard, newCurrentPlayer, prevState.roles) ? prevState.currentPlayer : null,
+            showRolePopup: false,
           };
-
-          if (isCheckmate(newState.board, nextPlayer, newState.roles)) {
-            newState.isGameOver = true;
-            newState.winner = prevState.currentPlayer;
-          }
-
-          const checkStatus = isCheck(newState.board, nextPlayer, newState.roles);
-          setIsInCheck(checkStatus);
-
-          console.log('New game state:', newState);
-          return newState;
         }
-        console.log('Invalid move');
         return prevState;
       });
     } catch (error) {
-      console.error('Error in movePiece:', error);
+      console.error('Error moving piece:', error);
     }
   };
 
   const offerDraw = () => {
-    setGameState((prevState) => ({ ...prevState, drawOffered: true }));
+    setGameState((prevState) => ({
+      ...prevState,
+      drawOffered: true,
+    }));
   };
 
   const acceptDraw = () => {
@@ -115,12 +108,14 @@ const ChessProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =>
       ...prevState,
       isGameOver: true,
       winner: null,
-      drawOffered: false,
     }));
   };
 
   const declineDraw = () => {
-    setGameState((prevState) => ({ ...prevState, drawOffered: false }));
+    setGameState((prevState) => ({
+      ...prevState,
+      drawOffered: false,
+    }));
   };
 
   const resign = () => {
@@ -145,22 +140,17 @@ const ChessProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =>
       enPassantTarget: null,
       castlingRights: { white: { kingSide: true, queenSide: true }, black: { kingSide: true, queenSide: true } },
     });
-    setIsInCheck(false);
   };
 
-  const getValidMovesForPiece = (position: Position): Position[] => {
-    try {
-      const moves = getValidMoves(gameState.board, position, gameState.roles, gameState.enPassantTarget, gameState.castlingRights);
-      console.log('Valid moves for piece at', position, ':', moves);
-      return moves;
-    } catch (error) {
-      console.error('Error in getValidMovesForPiece:', error);
-      return [];
-    }
+  const getValidMovesForPiece = (position: Position) => {
+    return getValidMoves(gameState.board, position, gameState.roles, gameState.enPassantTarget, gameState.castlingRights);
   };
 
   const hideRolePopup = () => {
-    setGameState((prevState) => ({ ...prevState, showRolePopup: false }));
+    setGameState((prevState) => ({
+      ...prevState,
+      showRolePopup: false,
+    }));
   };
 
   return (
@@ -174,7 +164,7 @@ const ChessProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =>
             resign,
             restartGame,
             getValidMovesForPiece,
-            isInCheck,
+            isInCheck: isCheck(gameState.board, gameState.currentPlayer, gameState.roles),
             hideRolePopup,
           }}
       >
