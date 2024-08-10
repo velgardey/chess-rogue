@@ -1,13 +1,57 @@
 import React, { useState, useEffect } from 'react';
 import styled, { keyframes, css } from 'styled-components';
 import { useChess } from '../context/ChessContext';
-import { Position } from '../utils/types';
+import { Position, PieceType, Player } from '../utils/types';
 
 const breatheAnimation = keyframes`
   0% { transform: scale(1); }
   50% { transform: scale(1.05); }
   100% { transform: scale(1); }
 `;
+
+const captureAnimation = keyframes`
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.2); opacity: 0.5; }
+  100% { transform: scale(0); opacity: 0; }
+`;
+
+const CapturedPiece = styled.div<{ player: string }>`
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 2.5rem;
+  color: ${({ player }) => (player === 'white' ? '#ffffff' : '#000000')};
+  animation: ${captureAnimation} 0.5s forwards;
+  z-index: 10;
+`;
+
+const CheckIndicator = styled.div`
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border: 4px solid red;
+  box-shadow: 0 0 10px red;
+  animation: ${breatheAnimation} 1s infinite ease-in-out;
+  z-index: 5;
+`;
+
+const CheckmateIndicator = styled.div`
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(255, 0, 0, 0.3);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 2rem;
+  color: white;
+  text-shadow: 2px 2px 4px black;
+  z-index: 15;
+`;
+
 
 const BoardContainer = styled.div`
   display: flex;
@@ -118,9 +162,10 @@ const Piece = styled.div<{ player: string }>`
 `;
 
 const ChessBoard: React.FC = () => {
-  const { board, currentPlayer, movePiece, getValidMovesForPiece, isInCheck } = useChess();
+  const { board, currentPlayer, movePiece, getValidMovesForPiece, isInCheck, isGameOver, winner } = useChess();
   const [selectedPiece, setSelectedPiece] = useState<Position | null>(null);
   const [validMoves, setValidMoves] = useState<Position[]>([]);
+  const [capturedPiece, setCapturedPiece] = useState<{ type: PieceType, player: Player, position: Position } | null>(null);
 
   useEffect(() => {
     if (selectedPiece) {
@@ -132,6 +177,11 @@ const ChessBoard: React.FC = () => {
 
   const handleSquareClick = (row: number, col: number) => {
     if (selectedPiece) {
+      const targetPiece = board[row][col];
+      if (targetPiece) {
+        setCapturedPiece({ type: targetPiece.type, player: targetPiece.player, position: { row, col } });
+        setTimeout(() => setCapturedPiece(null), 500);
+      }
       movePiece(selectedPiece, { row, col });
       setSelectedPiece(null);
     } else {
@@ -149,24 +199,33 @@ const ChessBoard: React.FC = () => {
   };
 
   return (
-    <BoardContainer>
-      <Board>
-        {board.map((row, rowIndex) =>
-          row.map((piece, colIndex) => (
-            <Square
-              key={`${rowIndex}-${colIndex}`}
-              isLight={(rowIndex + colIndex) % 2 === 0}
-              isSelected={selectedPiece?.row === rowIndex && selectedPiece?.col === colIndex}
-              isValidMove={isValidMove(rowIndex, colIndex)}
-              isCheck={isKingInCheck(rowIndex, colIndex)}
-              onClick={() => handleSquareClick(rowIndex, colIndex)}
-            >
-              {piece && <Piece player={piece.player}>{getPieceSymbol(piece.type, piece.player)}</Piece>}
-            </Square>
-          ))
-        )}
-      </Board>
-    </BoardContainer>
+      <BoardContainer>
+        <Board>
+          {board.map((row, rowIndex) =>
+              row.map((piece, colIndex) => (
+                  <Square
+                      key={`${rowIndex}-${colIndex}`}
+                      isLight={(rowIndex + colIndex) % 2 === 0}
+                      isSelected={selectedPiece?.row === rowIndex && selectedPiece?.col === colIndex}
+                      isValidMove={isValidMove(rowIndex, colIndex)}
+                      isCheck={isKingInCheck(rowIndex, colIndex)}
+                      onClick={() => handleSquareClick(rowIndex, colIndex)}
+                  >
+                    {piece && <Piece player={piece.player}>{getPieceSymbol(piece.type, piece.player)}</Piece>}
+                    {isKingInCheck(rowIndex, colIndex) && <CheckIndicator />}
+                    {capturedPiece && capturedPiece.position.row === rowIndex && capturedPiece.position.col === colIndex && (
+                        <CapturedPiece player={capturedPiece.player}>
+                          {getPieceSymbol(capturedPiece.type, capturedPiece.player)}
+                        </CapturedPiece>
+                    )}
+                    {isGameOver && winner && piece && piece.type === 'king' && piece.player === winner && (
+                        <CheckmateIndicator>Checkmate</CheckmateIndicator>
+                    )}
+                  </Square>
+              ))
+          )}
+        </Board>
+      </BoardContainer>
   );
 };
 

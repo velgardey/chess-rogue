@@ -32,7 +32,15 @@ export function isValidMove(
   if (!piece || piece.player !== currentPlayer) return false;
 
   const validMoves = getValidMoves(board, from, roles, enPassantTarget, castlingRights);
-  return validMoves.some(move => move.row === to.row && move.col === to.col);
+  const isValid = validMoves.some(move => move.row === to.row && move.col === to.col);
+
+  if (isValid) {
+    // Check if this move would leave the king in check
+    const newBoard = makeMove(board, from, to, castlingRights).newBoard;
+    return !isCheck(newBoard, currentPlayer, roles);
+  }
+
+  return false;
 }
 
 export function makeMove(
@@ -97,7 +105,7 @@ export function isCheck(board: Board, player: Player, roles: Record<PieceType, P
     for (let col = 0; col < 8; col++) {
       const piece = board[row][col];
       if (piece && piece.player === opponent) {
-        const validMoves = getValidMoves(board, { row, col }, roles, null, { white: { kingSide: true, queenSide: true }, black: { kingSide: true, queenSide: true } });
+        const validMoves = getValidMoves(board, { row, col }, roles, null, { white: { kingSide: true, queenSide: true }, black: { kingSide: true, queenSide: true } }, false);
         if (validMoves.some(move => move.row === kingPosition.row && move.col === kingPosition.col)) {
           return true;
         }
@@ -115,13 +123,8 @@ export function isCheckmate(board: Board, player: Player, roles: Record<PieceTyp
       const piece = board[row][col];
       if (piece && piece.player === player) {
         const validMoves = getValidMoves(board, { row, col }, roles, null, { white: { kingSide: true, queenSide: true }, black: { kingSide: true, queenSide: true } });
-        for (const move of validMoves) {
-          const newBoard = board.map(row => [...row]);
-          newBoard[move.row][move.col] = piece;
-          newBoard[row][col] = null;
-          if (!isCheck(newBoard, player, roles)) {
-            return false;
-          }
+        if (validMoves.length > 0) {
+          return false;
         }
       }
     }
@@ -134,28 +137,45 @@ export function getValidMoves(
     position: Position,
     roles: Record<PieceType, PieceType>,
     enPassantTarget: Position | null,
-    castlingRights: { [key in Player]: { kingSide: boolean; queenSide: boolean } }
+    castlingRights: { [key in Player]: { kingSide: boolean; queenSide: boolean } },
+    checkForCheck: boolean = true
 ): Position[] {
   const piece = board[position.row][position.col];
   if (!piece) return [];
 
   const role = roles[piece.type];
+  let moves: Position[] = [];
+
   switch (role) {
     case 'pawn':
-      return getPawnMoves(board, position, piece.player, enPassantTarget);
+      moves = getPawnMoves(board, position, piece.player, enPassantTarget);
+      break;
     case 'rook':
-      return getRookMoves(board, position, piece.player);
+      moves = getRookMoves(board, position, piece.player);
+      break;
     case 'knight':
-      return getKnightMoves(board, position, piece.player);
+      moves = getKnightMoves(board, position, piece.player);
+      break;
     case 'bishop':
-      return getBishopMoves(board, position, piece.player);
+      moves = getBishopMoves(board, position, piece.player);
+      break;
     case 'queen':
-      return getQueenMoves(board, position, piece.player);
+      moves = getQueenMoves(board, position, piece.player);
+      break;
     case 'king':
-      return getKingMoves(board, position, piece.player, castlingRights);
-    default:
-      return [];
+      moves = getKingMoves(board, position, piece.player, castlingRights);
+      break;
   }
+
+  if (checkForCheck) {
+    // Filter out moves that would leave the king in check
+    return moves.filter(move => {
+      const newBoard = makeMove(board, position, move, castlingRights).newBoard;
+      return !isCheck(newBoard, piece.player, roles);
+    });
+  }
+
+  return moves;
 }
 
 function getPawnMoves(board: Board, position: Position, player: Player, enPassantTarget: Position | null): Position[] {

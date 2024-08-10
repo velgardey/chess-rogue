@@ -41,6 +41,7 @@ const ChessProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =>
     castlingRights: { white: { kingSide: true, queenSide: true }, black: { kingSide: true, queenSide: true } },
   }));
 
+
   useEffect(() => {
     const timer = setInterval(() => {
       if (!gameState.isGameOver) {
@@ -77,6 +78,7 @@ const ChessProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =>
           const { newBoard, enPassantTarget, castlingRights } = makeMove(prevState.board, from, to, prevState.castlingRights);
 
           const newCurrentPlayer = prevState.currentPlayer === 'white' ? 'black' : 'white';
+          const isCheckmateNow = isCheckmate(newBoard, newCurrentPlayer, prevState.roles);
 
           return {
             ...prevState,
@@ -84,8 +86,8 @@ const ChessProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =>
             currentPlayer: newCurrentPlayer,
             enPassantTarget,
             castlingRights,
-            isGameOver: isCheckmate(newBoard, newCurrentPlayer, prevState.roles),
-            winner: isCheckmate(newBoard, newCurrentPlayer, prevState.roles) ? prevState.currentPlayer : null,
+            isGameOver: isCheckmateNow,
+            winner: isCheckmateNow ? prevState.currentPlayer : null,
             showRolePopup: false,
           };
         }
@@ -95,6 +97,7 @@ const ChessProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =>
       console.error('Error moving piece:', error);
     }
   };
+
 
   const offerDraw = () => {
     setGameState((prevState) => ({
@@ -152,6 +155,7 @@ const ChessProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =>
       showRolePopup: false,
     }));
   };
+
 
   return (
       <ChessContext.Provider
