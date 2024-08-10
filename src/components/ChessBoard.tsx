@@ -40,18 +40,20 @@ const CheckIndicator = styled.div`
 
 const CheckmateIndicator = styled.div`
   position: absolute;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(255, 0, 0, 0.3);
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 80%;
+  padding: 20px;
+  background-color: rgba(255, 0, 0, 0.8);
   display: flex;
   justify-content: center;
   align-items: center;
   font-size: 2rem;
-  color: white;
-  text-shadow: 2px 2px 4px black;
+  color: rgba(255, 0, 0, 0.8);
   z-index: 15;
+  border-radius: 10px;
 `;
-
 
 const BoardContainer = styled.div`
   display: flex;
@@ -162,7 +164,7 @@ const Piece = styled.div<{ player: string }>`
 `;
 
 const ChessBoard: React.FC = () => {
-  const { board, currentPlayer, movePiece, getValidMovesForPiece, isInCheck, isGameOver, winner } = useChess();
+  const { board, currentPlayer, movePiece, getValidMovesForPiece, isInCheck, isGameOver, winner, roles } = useChess();
   const [selectedPiece, setSelectedPiece] = useState<Position | null>(null);
   const [validMoves, setValidMoves] = useState<Position[]>([]);
   const [capturedPiece, setCapturedPiece] = useState<{ type: PieceType, player: Player, position: Position } | null>(null);
@@ -176,15 +178,22 @@ const ChessBoard: React.FC = () => {
   }, [selectedPiece, getValidMovesForPiece]);
 
   const handleSquareClick = (row: number, col: number) => {
+    const clickedPiece = board[row][col];
     if (selectedPiece) {
-      const targetPiece = board[row][col];
-      if (targetPiece) {
-        setCapturedPiece({ type: targetPiece.type, player: targetPiece.player, position: { row, col } });
-        setTimeout(() => setCapturedPiece(null), 500);
+      if (isValidMove(row, col)) {
+        const targetPiece = board[row][col];
+        if (targetPiece) {
+          setCapturedPiece({ type: targetPiece.type, player: targetPiece.player, position: { row, col } });
+          setTimeout(() => setCapturedPiece(null), 500);
+        }
+        movePiece(selectedPiece, { row, col });
+        setSelectedPiece(null);
+      } else if (clickedPiece && clickedPiece.player === currentPlayer) {
+        setSelectedPiece({ row, col });
+      } else {
+        setSelectedPiece(null);
       }
-      movePiece(selectedPiece, { row, col });
-      setSelectedPiece(null);
-    } else {
+    } else if (clickedPiece && clickedPiece.player === currentPlayer) {
       setSelectedPiece({ row, col });
     }
   };
@@ -211,25 +220,31 @@ const ChessBoard: React.FC = () => {
                       isCheck={isKingInCheck(rowIndex, colIndex)}
                       onClick={() => handleSquareClick(rowIndex, colIndex)}
                   >
-                    {piece && <Piece player={piece.player}>{getPieceSymbol(piece.type, piece.player)}</Piece>}
+                    {piece && (
+                        <Piece player={piece.player}>
+                          {getPieceSymbol(roles[piece.type], piece.player)}
+                        </Piece>
+                    )}
                     {isKingInCheck(rowIndex, colIndex) && <CheckIndicator />}
                     {capturedPiece && capturedPiece.position.row === rowIndex && capturedPiece.position.col === colIndex && (
                         <CapturedPiece player={capturedPiece.player}>
-                          {getPieceSymbol(capturedPiece.type, capturedPiece.player)}
+                          {getPieceSymbol(roles[capturedPiece.type], capturedPiece.player)}
                         </CapturedPiece>
-                    )}
-                    {isGameOver && winner && piece && piece.type === 'king' && piece.player === winner && (
-                        <CheckmateIndicator>Checkmate</CheckmateIndicator>
                     )}
                   </Square>
               ))
           )}
         </Board>
+        {isGameOver && (
+            <CheckmateIndicator>
+              {winner ? `Checkmate - ${winner.charAt(0).toUpperCase() + winner.slice(1)} wins!` : 'Stalemate - Draw!'}
+            </CheckmateIndicator>
+        )}
       </BoardContainer>
   );
 };
 
-const getPieceSymbol = (type: string, player: 'white' | 'black') => {
+const getPieceSymbol = (role: PieceType, player: 'white' | 'black') => {
   const symbols: { [key: string]: { white: string; black: string } } = {
     pawn: { white: '♙', black: '♟︎' },
     rook: { white: '♖', black: '♜' },
@@ -238,7 +253,7 @@ const getPieceSymbol = (type: string, player: 'white' | 'black') => {
     queen: { white: '♕', black: '♛' },
     king: { white: '♔', black: '♚' },
   };
-  return symbols[type as keyof typeof symbols][player];
+  return symbols[role][player];
 };
 
 export default ChessBoard;

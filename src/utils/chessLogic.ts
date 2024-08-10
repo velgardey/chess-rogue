@@ -115,21 +115,27 @@ export function isCheck(board: Board, player: Player, roles: Record<PieceType, P
   return false;
 }
 
-export function isCheckmate(board: Board, player: Player, roles: Record<PieceType, PieceType>): boolean {
-  if (!isCheck(board, player, roles)) return false;
+export function isCheckmate(board: Board, player: Player, roles: Record<PieceType, PieceType>, enPassantTarget: Position | null, castlingRights: { [key in Player]: { kingSide: boolean; queenSide: boolean } }): boolean {
+  return isCheck(board, player, roles) && !hasLegalMoves(board, player, roles, enPassantTarget, castlingRights);
+}
 
+export function isStalemate(board: Board, player: Player, roles: Record<PieceType, PieceType>, enPassantTarget: Position | null, castlingRights: { [key in Player]: { kingSide: boolean; queenSide: boolean } }): boolean {
+  return !isCheck(board, player, roles) && !hasLegalMoves(board, player, roles, enPassantTarget, castlingRights);
+}
+
+function hasLegalMoves(board: Board, player: Player, roles: Record<PieceType, PieceType>, enPassantTarget: Position | null, castlingRights: { [key in Player]: { kingSide: boolean; queenSide: boolean } }): boolean {
   for (let row = 0; row < 8; row++) {
     for (let col = 0; col < 8; col++) {
       const piece = board[row][col];
       if (piece && piece.player === player) {
-        const validMoves = getValidMoves(board, { row, col }, roles, null, { white: { kingSide: true, queenSide: true }, black: { kingSide: true, queenSide: true } });
+        const validMoves = getValidMoves(board, { row, col }, roles, enPassantTarget, castlingRights);
         if (validMoves.length > 0) {
-          return false;
+          return true;
         }
       }
     }
   }
-  return true;
+  return false;
 }
 
 export function getValidMoves(
@@ -204,8 +210,11 @@ function getPawnMoves(board: Board, position: Position, player: Player, enPassan
   }
 
   // En passant
-  if (enPassantTarget && enPassantTarget.row === position.row + direction && Math.abs(enPassantTarget.col - position.col) === 1) {
-    moves.push(enPassantTarget);
+  if (enPassantTarget &&
+      enPassantTarget.row === position.row &&
+      Math.abs(enPassantTarget.col - position.col) === 1 &&
+      ((player === 'white' && position.row === 3) || (player === 'black' && position.row === 4))) {
+    moves.push({ row: position.row + direction, col: enPassantTarget.col });
   }
 
   return moves;
