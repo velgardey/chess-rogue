@@ -36,7 +36,7 @@ export function isValidMove(
 
   if (isValid) {
     // Check if this move would leave the king in check
-    const newBoard = makeMove(board, from, to, castlingRights).newBoard;
+    const { newBoard } = makeMove(board, from, to, castlingRights, enPassantTarget);
     return !isCheck(newBoard, currentPlayer, roles);
   }
 
@@ -44,18 +44,27 @@ export function isValidMove(
 }
 
 export function makeMove(
-    board: Board,
-    from: Position,
-    to: Position,
-    castlingRights: { [key in Player]: { kingSide: boolean; queenSide: boolean } }
+  board: Board,
+  from: Position,
+  to: Position,
+  castlingRights: { [key in Player]: { kingSide: boolean; queenSide: boolean } },
+  enPassantTarget: Position | null
 ): { newBoard: Board; enPassantTarget: Position | null; castlingRights: typeof castlingRights } {
   const newBoard = board.map(row => [...row]);
   const piece = newBoard[from.row][from.col];
   const targetPiece = newBoard[to.row][to.col];
 
   // Handle en passant capture
-  if (piece?.type === 'pawn' && to.col !== from.col && !targetPiece) {
-    newBoard[from.row][to.col] = null; // Remove the captured pawn
+  let newEnPassantTarget: Position | null = null;
+  if (piece?.type === 'pawn') {
+    if (to.col !== from.col && !targetPiece && enPassantTarget && to.row === enPassantTarget.row && to.col === enPassantTarget.col) {
+      // This is an en passant capture
+      newBoard[from.row][to.col] = null; // Remove the captured pawn
+    }
+    // Set new en passant target if pawn moves two squares
+    if (Math.abs(to.row - from.row) === 2) {
+      newEnPassantTarget = { row: (from.row + to.row) / 2, col: from.col };
+    }
   }
 
   // Move the piece
@@ -87,11 +96,6 @@ export function makeMove(
       newCastlingRights[piece.player].kingSide = false;
     }
   }
-
-  // Update en passant target
-  const newEnPassantTarget = piece?.type === 'pawn' && Math.abs(to.row - from.row) === 2
-      ? { row: (from.row + to.row) / 2, col: from.col }
-      : null;
 
   return { newBoard, enPassantTarget: newEnPassantTarget, castlingRights: newCastlingRights };
 }
@@ -176,7 +180,7 @@ export function getValidMoves(
   if (checkForCheck) {
     // Filter out moves that would leave the king in check
     return moves.filter(move => {
-      const newBoard = makeMove(board, position, move, castlingRights).newBoard;
+      const { newBoard } = makeMove(board, position, move, castlingRights, enPassantTarget);
       return !isCheck(newBoard, piece.player, roles);
     });
   }
@@ -211,9 +215,9 @@ function getPawnMoves(board: Board, position: Position, player: Player, enPassan
 
   // En passant
   if (enPassantTarget &&
-      enPassantTarget.row === position.row &&
+      position.row === (player === 'white' ? 3 : 4) &&
       Math.abs(enPassantTarget.col - position.col) === 1 &&
-      ((player === 'white' && position.row === 3) || (player === 'black' && position.row === 4))) {
+      enPassantTarget.row === position.row) {
     moves.push({ row: position.row + direction, col: enPassantTarget.col });
   }
 

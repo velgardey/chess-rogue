@@ -68,17 +68,17 @@ const ChessProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =>
 
   const movePiece = (from: Position, to: Position) => {
     if (gameState.isGameOver) return;
-
+  
     try {
       setGameState((prevState) => {
         if (isValidMove(prevState.board, from, to, prevState.currentPlayer, prevState.roles, prevState.enPassantTarget, prevState.castlingRights)) {
-          const { newBoard, enPassantTarget, castlingRights } = makeMove(prevState.board, from, to, prevState.castlingRights);
-
+          const { newBoard, enPassantTarget, castlingRights } = makeMove(prevState.board, from, to, prevState.castlingRights, prevState.enPassantTarget);
+  
           const newCurrentPlayer = prevState.currentPlayer === 'white' ? 'black' : 'white';
           const isCheckmateNow = isCheckmate(newBoard, newCurrentPlayer, prevState.roles, enPassantTarget, castlingRights);
           const isStalemateNow = isStalemate(newBoard, newCurrentPlayer, prevState.roles, enPassantTarget, castlingRights);
           const isCheckNow = isCheck(newBoard, newCurrentPlayer, prevState.roles);
-
+  
           return {
             ...prevState,
             board: newBoard,
