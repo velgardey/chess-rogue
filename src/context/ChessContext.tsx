@@ -1,9 +1,9 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { GameState, Position } from '../utils/types';
+import { GameState, Position, PieceType } from '../utils/types';
 import { initializeBoard, isValidMove, makeMove, isCheck, isCheckmate, isStalemate, getValidMoves, randomizeRoles } from '../utils/chessLogic';
-
 interface ChessContextType extends GameState {
   movePiece: (from: Position, to: Position) => void;
+  handlePromotion: (position: Position, promotionPiece: PieceType) => void;
   offerDraw: () => void;
   acceptDraw: () => void;
   declineDraw: () => void;
@@ -25,7 +25,6 @@ export const useChess = () => {
 };
 
 const INITIAL_TIME = 600; // 10 minutes in seconds
-
 const ChessProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [gameState, setGameState] = useState<GameState>(() => ({
     board: initializeBoard(),
@@ -40,7 +39,6 @@ const ChessProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =>
     enPassantTarget: null,
     castlingRights: { white: { kingSide: true, queenSide: true }, black: { kingSide: true, queenSide: true } },
   }));
-
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -72,8 +70,7 @@ const ChessProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =>
     try {
       setGameState((prevState) => {
         if (isValidMove(prevState.board, from, to, prevState.currentPlayer, prevState.roles, prevState.enPassantTarget, prevState.castlingRights)) {
-          const { newBoard, enPassantTarget, castlingRights } = makeMove(prevState.board, from, to, prevState.castlingRights, prevState.enPassantTarget);
-  
+          const { newBoard, enPassantTarget, castlingRights } = makeMove(prevState.board, from, to, prevState.castlingRights, prevState.enPassantTarget, prevState.roles);
           const newCurrentPlayer = prevState.currentPlayer === 'white' ? 'black' : 'white';
           const isCheckmateNow = isCheckmate(newBoard, newCurrentPlayer, prevState.roles, enPassantTarget, castlingRights);
           const isStalemateNow = isStalemate(newBoard, newCurrentPlayer, prevState.roles, enPassantTarget, castlingRights);
@@ -96,6 +93,20 @@ const ChessProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =>
     } catch (error) {
       console.error('Error moving piece:', error);
     }
+  };
+
+  const handlePromotion = (position: Position, promotionPiece: PieceType) => {
+    setGameState((prevState) => {
+      const newBoard = [...prevState.board];
+      const piece = newBoard[position.row][position.col];
+      if (piece && piece.type === 'pawn') {
+        newBoard[position.row][position.col] = { ...piece, type: promotionPiece };
+      }
+      return {
+        ...prevState,
+        board: newBoard,
+      };
+    });
   };
 
   const offerDraw = () => {
@@ -156,24 +167,24 @@ const ChessProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =>
     }));
   };
 
-
   return (
-      <ChessContext.Provider
-          value={{
-            ...gameState,
-            movePiece,
-            offerDraw,
-            acceptDraw,
-            declineDraw,
-            resign,
-            restartGame,
-            getValidMovesForPiece,
-            isInCheck: isCheck(gameState.board, gameState.currentPlayer, gameState.roles),
-            hideRolePopup,
-          }}
-      >
-        {children}
-      </ChessContext.Provider>
+    <ChessContext.Provider
+      value={{
+        ...gameState,
+        movePiece,
+        handlePromotion,
+        offerDraw,
+        acceptDraw,
+        declineDraw,
+        resign,
+        restartGame,
+        getValidMovesForPiece,
+        isInCheck: isCheck(gameState.board, gameState.currentPlayer, gameState.roles),
+        hideRolePopup,
+      }}
+    >
+      {children}
+    </ChessContext.Provider>
   );
 };
 

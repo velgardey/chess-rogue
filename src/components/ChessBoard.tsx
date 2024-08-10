@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import styled, { keyframes, css } from 'styled-components';
 import { useChess } from '../context/ChessContext';
 import { Position, PieceType, Player } from '../utils/types';
+import { getRandomPromotionPiece } from '../utils/chessLogic';
 
 const breatheAnimation = keyframes`
   0% { transform: scale(1); }
@@ -14,6 +15,7 @@ const captureAnimation = keyframes`
   50% { transform: scale(1.2); opacity: 0.5; }
   100% { transform: scale(0); opacity: 0; }
 `;
+
 
 const CapturedPiece = styled.div<{ player: string }>`
   position: absolute;
@@ -74,6 +76,7 @@ const Board = styled.div`
   border: 4px solid #61dafb;
   box-shadow: 0 0 20px rgba(97, 218, 251, 0.3);
   transition: all 0.3s ease;
+  overflow: hidden;
 
   &:hover {
     box-shadow: 0 0 30px rgba(97, 218, 251, 0.5);
@@ -164,11 +167,10 @@ const Piece = styled.div<{ player: string }>`
 `;
 
 const ChessBoard: React.FC = () => {
-  const { board, currentPlayer, movePiece, getValidMovesForPiece, isInCheck, isGameOver, winner, roles } = useChess();
+  const { board, currentPlayer, movePiece, handlePromotion, getValidMovesForPiece, isInCheck, isGameOver, winner, roles } = useChess();
   const [selectedPiece, setSelectedPiece] = useState<Position | null>(null);
   const [validMoves, setValidMoves] = useState<Position[]>([]);
   const [capturedPiece, setCapturedPiece] = useState<{ type: PieceType, player: Player, position: Position } | null>(null);
-
   useEffect(() => {
     if (selectedPiece) {
       setValidMoves(getValidMovesForPiece(selectedPiece));
@@ -186,7 +188,15 @@ const ChessBoard: React.FC = () => {
           setCapturedPiece({ type: targetPiece.type, player: targetPiece.player, position: { row, col } });
           setTimeout(() => setCapturedPiece(null), 500);
         }
-        movePiece(selectedPiece, { row, col });
+        const movedPiece = board[selectedPiece.row][selectedPiece.col];
+        if (movedPiece) {
+          const isPromotion = roles[movedPiece.type] === 'pawn' && (row === 0 || row === 7);
+movePiece(selectedPiece, { row, col });
+if (isPromotion) {
+  const promotionPiece = getRandomPromotionPiece();
+  handlePromotion({ row, col }, promotionPiece);
+}
+        }
         setSelectedPiece(null);
       } else if (clickedPiece && clickedPiece.player === currentPlayer) {
         setSelectedPiece({ row, col });

@@ -36,7 +36,7 @@ export function isValidMove(
 
   if (isValid) {
     // Check if this move would leave the king in check
-    const { newBoard } = makeMove(board, from, to, castlingRights, enPassantTarget);
+    const { newBoard } = makeMove(board, from, to, castlingRights, enPassantTarget, roles);
     return !isCheck(newBoard, currentPlayer, roles);
   }
 
@@ -48,7 +48,8 @@ export function makeMove(
   from: Position,
   to: Position,
   castlingRights: { [key in Player]: { kingSide: boolean; queenSide: boolean } },
-  enPassantTarget: Position | null
+  enPassantTarget: Position | null,
+  roles: Record<PieceType, PieceType>
 ): { newBoard: Board; enPassantTarget: Position | null; castlingRights: typeof castlingRights } {
   const newBoard = board.map(row => [...row]);
   const piece = newBoard[from.row][from.col];
@@ -56,7 +57,7 @@ export function makeMove(
 
   // Handle en passant capture
   let newEnPassantTarget: Position | null = null;
-  if (piece?.type === 'pawn') {
+  if (piece && roles[piece.type] === 'pawn') {
     if (to.col !== from.col && !targetPiece && enPassantTarget && to.row === enPassantTarget.row && to.col === enPassantTarget.col) {
       // This is an en passant capture
       newBoard[from.row][to.col] = null; // Remove the captured pawn
@@ -72,12 +73,12 @@ export function makeMove(
   newBoard[from.row][from.col] = null;
 
   // Handle pawn promotion
-  if (piece?.type === 'pawn' && (to.row === 0 || to.row === 7)) {
+  if (piece && roles[piece.type] === 'pawn' && (to.row === 0 || to.row === 7)) {
     newBoard[to.row][to.col] = { type: getRandomPromotionPiece(), player: piece.player };
   }
 
   // Handle castling
-  if (piece?.type === 'king' && Math.abs(to.col - from.col) === 2) {
+  if (piece && roles[piece.type] === 'king' && Math.abs(to.col - from.col) === 2) {
     const rookFromCol = to.col > from.col ? 7 : 0;
     const rookToCol = to.col > from.col ? 5 : 3;
     newBoard[to.row][rookToCol] = newBoard[to.row][rookFromCol];
@@ -86,14 +87,16 @@ export function makeMove(
 
   // Update castling rights
   const newCastlingRights = { ...castlingRights };
-  if (piece?.type === 'king') {
-    newCastlingRights[piece.player].kingSide = false;
-    newCastlingRights[piece.player].queenSide = false;
-  } else if (piece?.type === 'rook') {
-    if (from.col === 0) {
-      newCastlingRights[piece.player].queenSide = false;
-    } else if (from.col === 7) {
+  if (piece) {
+    if (roles[piece.type] === 'king') {
       newCastlingRights[piece.player].kingSide = false;
+      newCastlingRights[piece.player].queenSide = false;
+    } else if (roles[piece.type] === 'rook') {
+      if (from.col === 0) {
+        newCastlingRights[piece.player].queenSide = false;
+      } else if (from.col === 7) {
+        newCastlingRights[piece.player].kingSide = false;
+      }
     }
   }
 
@@ -180,7 +183,7 @@ export function getValidMoves(
   if (checkForCheck) {
     // Filter out moves that would leave the king in check
     return moves.filter(move => {
-      const { newBoard } = makeMove(board, position, move, castlingRights, enPassantTarget);
+      const { newBoard } = makeMove(board, position, move, castlingRights, enPassantTarget, roles);
       return !isCheck(newBoard, piece.player, roles);
     });
   }
