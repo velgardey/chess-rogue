@@ -3,13 +3,11 @@ import { Board, Player, Position, PieceType } from './types';
 export function initializeBoard(): Board {
   const board: Board = Array(8).fill(null).map(() => Array(8).fill(null));
 
-  // Set up pawns
   for (let i = 0; i < 8; i++) {
     board[1][i] = { type: 'pawn', player: 'black' };
     board[6][i] = { type: 'pawn', player: 'white' };
   }
 
-  // Set up other pieces
   const backRow: PieceType[] = ['rook', 'knight', 'bishop', 'queen', 'king', 'bishop', 'knight', 'rook'];
   for (let i = 0; i < 8; i++) {
     board[0][i] = { type: backRow[i], player: 'black' };
@@ -35,7 +33,6 @@ export function isValidMove(
   const isValid = validMoves.some(move => move.row === to.row && move.col === to.col);
 
   if (isValid) {
-    // Check if this move would leave the king in check
     const { newBoard } = makeMove(board, from, to, castlingRights, enPassantTarget, roles);
     return !isCheck(newBoard, currentPlayer, roles);
   }
@@ -55,29 +52,23 @@ export function makeMove(
   const piece = newBoard[from.row][from.col];
   const targetPiece = newBoard[to.row][to.col];
 
-  // Handle en passant capture
   let newEnPassantTarget: Position | null = null;
   if (piece && roles[piece.type] === 'pawn') {
     if (to.col !== from.col && !targetPiece && enPassantTarget && to.row === enPassantTarget.row && to.col === enPassantTarget.col) {
-      // This is an en passant capture
-      newBoard[from.row][to.col] = null; // Remove the captured pawn
+      newBoard[from.row][to.col] = null;
     }
-    // Set new en passant target if pawn moves two squares
     if (Math.abs(to.row - from.row) === 2) {
       newEnPassantTarget = { row: (from.row + to.row) / 2, col: from.col };
     }
   }
 
-  // Move the piece
   newBoard[to.row][to.col] = piece;
   newBoard[from.row][from.col] = null;
 
-  // Handle pawn promotion
   if (piece && roles[piece.type] === 'pawn' && (to.row === 0 || to.row === 7)) {
     newBoard[to.row][to.col] = { type: getRandomPromotionPiece(), player: piece.player };
   }
 
-  // Handle castling
   if (piece && roles[piece.type] === 'king' && Math.abs(to.col - from.col) === 2) {
     const rookFromCol = to.col > from.col ? 7 : 0;
     const rookToCol = to.col > from.col ? 5 : 3;
@@ -85,7 +76,6 @@ export function makeMove(
     newBoard[to.row][rookFromCol] = null;
   }
 
-  // Update castling rights
   const newCastlingRights = { ...castlingRights };
   if (piece) {
     if (roles[piece.type] === 'king') {
@@ -181,7 +171,6 @@ export function getValidMoves(
   }
 
   if (checkForCheck) {
-    // Filter out moves that would leave the king in check
     return moves.filter(move => {
       const { newBoard } = makeMove(board, position, move, castlingRights, enPassantTarget, roles);
       return !isCheck(newBoard, piece.player, roles);
@@ -196,7 +185,6 @@ function getPawnMoves(board: Board, position: Position, player: Player, enPassan
   const direction = player === 'white' ? -1 : 1;
   const startRow = player === 'white' ? 6 : 1;
 
-  // Move forward
   if (!board[position.row + direction][position.col]) {
     moves.push({ row: position.row + direction, col: position.col });
     if (position.row === startRow && !board[position.row + 2 * direction][position.col]) {
@@ -204,7 +192,6 @@ function getPawnMoves(board: Board, position: Position, player: Player, enPassan
     }
   }
 
-  // Capture diagonally
   for (const colOffset of [-1, 1]) {
     const newRow = position.row + direction;
     const newCol = position.col + colOffset;
@@ -216,7 +203,6 @@ function getPawnMoves(board: Board, position: Position, player: Player, enPassan
     }
   }
 
-  // En passant
   if (enPassantTarget &&
       position.row === (player === 'white' ? 3 : 4) &&
       Math.abs(enPassantTarget.col - position.col) === 1 &&
@@ -347,7 +333,6 @@ function getKingMoves(
     }
   }
 
-  // Castling
   if (castlingRights[player].kingSide &&
       !board[position.row][position.col + 1] &&
       !board[position.row][position.col + 2]) {
@@ -385,7 +370,7 @@ export function randomizeRoles(): Record<PieceType, PieceType> {
     knight: 'knight',
     bishop: 'bishop',
     queen: 'queen',
-    king: 'king', // King always keeps its role
+    king: 'king', 
   };
 
   pieces.forEach((piece, index) => {

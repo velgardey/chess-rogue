@@ -7,7 +7,7 @@ const InfoContainer = styled.div`
   justify-content: space-between;
   width: 80vmin;
   max-width: 600px;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.75rem;
   user-select: none;
 
   @media (max-width: 768px) {

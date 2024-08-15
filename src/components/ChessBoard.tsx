@@ -63,17 +63,21 @@ const BoardContainer = styled.div`
   align-items: center;
   width: 100%;
   max-width: 600px;
-  margin: 0 auto;
+  margin: 1rem auto;
+  padding: 0.5rem;
+
+  @media (max-width: 768px) {
+    max-width: 95vw;
+    padding: 0.25rem;
+  }
 `;
 
 const Board = styled.div`
   display: grid;
   grid-template-columns: repeat(8, 1fr);
-  width: 80vmin;
-  height: 80vmin;
-  max-width: 600px;
-  max-height: 600px;
-  border: 4px solid #61dafb;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border: 2px solid #61dafb;
   box-shadow: 0 0 20px rgba(97, 218, 251, 0.3);
   transition: all 0.3s ease;
   overflow: hidden;
@@ -82,14 +86,8 @@ const Board = styled.div`
     box-shadow: 0 0 30px rgba(97, 218, 251, 0.5);
   }
 
-  @media (max-width: 768px) {
-    width: 90vmin;
-    height: 90vmin;
-  }
-
   @media (max-width: 480px) {
-    width: 95vmin;
-    height: 95vmin;
+    border-width: 1px;
   }
 `;
 

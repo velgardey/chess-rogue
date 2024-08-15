@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { GameState, Position, PieceType } from '../utils/types';
 import { initializeBoard, isValidMove, makeMove, isCheck, isCheckmate, isStalemate, getValidMoves, randomizeRoles } from '../utils/chessLogic';
+
 interface ChessContextType extends GameState {
   movePiece: (from: Position, to: Position) => void;
   handlePromotion: (position: Position, promotionPiece: PieceType) => void;

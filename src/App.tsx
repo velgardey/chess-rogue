@@ -30,16 +30,16 @@ const AppContainer = styled.div`
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    min-height: 100%;
+    justify-content: flex-start;
+    min-height: 100vh;
     width: 100%;
-    padding: 1rem;
+    padding: 0.5rem;
     background-color: #1a1a1a;
     color: #ffffff;
     font-family: 'Roboto', sans-serif;
 
     @media (max-width: 768px) {
-        padding: 0.5rem;
+        padding: 0.75rem;
     }
 `;
 
